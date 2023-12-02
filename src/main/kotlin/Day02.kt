@@ -2,18 +2,7 @@ fun main() {
     fun part1(input: List<String>): Int = input.sumOf { line ->
         val (game, sets) = line.split(":")
         val gameNumber = game.substring(5 until game.length).toInt()
-        val gameSets = sets.split(";")
-            .map { set ->
-                set
-                    .split(",")
-                    .map { cubes ->
-                        val (amount, color) = cubes.trim().split(" ")
-                        color to amount.toInt()
-                    }
-            }
-            .flatten()
-            .groupBy { it.first }
-            .mapValues { it.value.maxBy { cube -> cube.second }.second }
+        val gameSets = sets.groupByColor()
         val gameIsPossible = colors.all { color ->
             gameSets.getValue(color.key) <= color.value
         }
@@ -22,19 +11,7 @@ fun main() {
 
     fun part2(input: List<String>): Int = input.sumOf { line ->
         val (_, sets) = line.split(":")
-
-        sets.split(";")
-            .map { set ->
-                set
-                    .split(",")
-                    .map { cubes ->
-                        val (amount, color) = cubes.trim().split(" ")
-                        color to amount.toInt()
-                    }
-            }
-            .flatten()
-            .groupBy { it.first }
-            .mapValues { it.value.maxBy { cube -> cube.second }.second }
+        sets.groupByColor()
             .map { it.value }
             .reduce { acc, i ->
                 acc * i
@@ -56,3 +33,15 @@ private val colors = mapOf(
     "blue" to 14,
 )
 
+private fun String.groupByColor(): Map<String, Int> = split(";")
+    .map { set ->
+        set
+            .split(",")
+            .map { cubes ->
+                val (amount, color) = cubes.trim().split(" ")
+                color to amount.toInt()
+            }
+    }
+    .flatten()
+    .groupBy { it.first }
+    .mapValues { it.value.maxBy { cube -> cube.second }.second }
