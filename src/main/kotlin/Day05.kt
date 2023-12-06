@@ -3,25 +3,28 @@ fun main() {
         val seeds = input.seeds()
         val eL = input.emptyLines()
         val cat = input.categories(eL)
-        println(seeds)
         val result = seeds.mapFromSeedToLocation(cat)
         return result.min().toInt()
     }
 
-    fun part2(input: List<String>): Int {
+    fun part2(input: List<String>): Long {
         val seeds = input.seeds()
             .windowed(2, 2)
             .map { (start, range) -> (start until (start + range)) }
-        val eL = input.emptyLines()
-        val cat = input.categories(eL)
-        println(seeds)
-        val result = seeds.mapRangeFromSeedToLocation(cat)
-        return result.min().toInt()
+        val cat = input.categories(input.emptyLines())
+
+        return seeds.minOf { range ->
+            range.minOfOrNull { value ->
+                cat.fold(value) { c, m ->
+                    m.firstNotNullOfOrNull { it.map(c) } ?: c
+                }
+            } ?: Long.MAX_VALUE
+        }
     }
 
     // test if implementation meets criteria from the description, like:
     val testInput = readInput("Day05_test")
-    check(part2(testInput) == 46)
+    check(part2(testInput) == 46L)
 
     val input = readInput("Day05")
     part1(input).println()
@@ -30,10 +33,14 @@ fun main() {
 
 data class Mapping(
     val source: LongRange,
-    val dest: LongRange,
     val offset: Long,
 ) {
-    fun sourceToDest(input: Long): Long = input - offset
+    fun map(input: Long): Long? {
+        return when (input) {
+            in source -> input + offset
+            else -> null
+        }
+    }
 }
 
 private fun List<String>.seeds(): List<Long> {
@@ -63,28 +70,20 @@ private fun List<String>.categories(eL: List<Int>): List<List<Mapping>> {
         }
         .map { category ->
             category.map { row ->
-                val (drS, srS, rL) = row
-                val source = srS until (srS + rL)
-                val dest = drS until (drS + rL)
-                Mapping(source, dest, srS - drS)
+                val (destStart, sourceStart, l) = row
+                val source = sourceStart until (sourceStart + l)
+                Mapping(source, destStart - sourceStart)
             }
         }
 
 }
 
 private fun List<Long>.mapFromSeedToLocation(cat: List<List<Mapping>>): Sequence<Long> {
-    return asSequence()
-        .map { seed -> seed.mapFromSeedToLocation(cat) }
-}
-
-private fun List<LongRange>.mapRangeFromSeedToLocation(cat: List<List<Mapping>>): Sequence<Long> {
-    return asSequence().map { range -> range.minOf { it.mapFromSeedToLocation(cat) } }
+    return asSequence().map { seed -> seed.mapFromSeedToLocation(cat) }
 }
 
 private fun Long.mapFromSeedToLocation(mapping: List<List<Mapping>>): Long {
-    var cS = this
-    mapping.forEach { map ->
-        map.firstOrNull { cS in it.source }?.let { cS = it.sourceToDest(cS) }
-    }
-    return cS
+    return mapping.scan(this) { acc, m ->
+        m.firstOrNull { acc in it.source }?.map(acc) ?: acc
+    }.last()
 }
