@@ -52,7 +52,6 @@ private fun List<String>.emptyLines(): List<Int> {
         .map { it.first } + listOf(this.size)
 }
 
-
 private fun List<String>.categories(eL: List<Int>): List<List<Mapping>> {
     return eL.windowed(2, 1)
         .map { e ->
